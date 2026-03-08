@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Camera, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { Upload, Loader2, RotateCcw, Sparkles, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MetricsPanel } from "./MetricsPanel";
 import { AnalysisLoading } from "./AnalysisLoading";
+import { preprocessFace, type FacePreprocessResult } from "@/lib/facePreprocess";
 import type { Scan } from "@/hooks/useScans";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -15,10 +16,12 @@ export const SelfieScanner = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [preprocessed, setPreprocessed] = useState<FacePreprocessResult | null>(null);
+  const [preprocessing, setPreprocessing] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<Scan | null>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
@@ -29,24 +32,52 @@ export const SelfieScanner = () => {
       toast.error("Image must be under 5MB");
       return;
     }
+
+    setResult(null);
+    setPreprocessing(true);
+
+    // Show original preview immediately
     const reader = new FileReader();
     reader.onload = () => setPreview(reader.result as string);
     reader.readAsDataURL(file);
-    setResult(null);
+
+    try {
+      const ppResult = await preprocessFace(file);
+      setPreprocessed(ppResult);
+
+      // Update preview to preprocessed image
+      const ppUrl = URL.createObjectURL(ppResult.croppedBlob);
+      setPreview(ppUrl);
+
+      if (!ppResult.faceDetected) {
+        toast.warning("No face detected — the image will still be analyzed, but results may be less accurate.");
+      } else {
+        toast.success(`Face detected (${Math.round(ppResult.confidence * 100)}% confidence)`);
+      }
+    } catch (err) {
+      console.error("Preprocessing failed:", err);
+      toast.error("Face processing failed. The original image will be used.");
+      // Keep original preview
+      setPreprocessed(null);
+    } finally {
+      setPreprocessing(false);
+    }
   };
 
   const analyzeSelfie = async () => {
-    if (!fileInputRef.current?.files?.[0] || !user) return;
+    if (!user) return;
 
     setAnalyzing(true);
     try {
-      const file = fileInputRef.current.files[0];
-      const ext = file.name.split(".").pop();
-      const filePath = `${user.id}/${Date.now()}.${ext}`;
+      // Use preprocessed blob if available, otherwise original file
+      const uploadBlob = preprocessed?.croppedBlob ?? fileInputRef.current?.files?.[0];
+      if (!uploadBlob) throw new Error("No image to analyze");
+
+      const filePath = `${user.id}/${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("selfies")
-        .upload(filePath, file);
+        .upload(filePath, uploadBlob, { contentType: "image/jpeg" });
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
@@ -93,6 +124,7 @@ export const SelfieScanner = () => {
 
   const reset = () => {
     setPreview(null);
+    setPreprocessed(null);
     setResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -136,12 +168,34 @@ export const SelfieScanner = () => {
               <div className="space-y-6 text-center">
                 <div className="relative inline-block rounded-2xl overflow-hidden max-w-xs mx-auto shadow-lg">
                   <img src={preview} alt="Selfie preview" className="w-full h-auto" />
+                  {preprocessing && (
+                    <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <span className="text-xs font-medium text-foreground">Detecting face…</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Face detection status */}
+                {!preprocessing && preprocessed && (
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                    preprocessed.faceDetected
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-destructive/10 text-destructive"
+                  }`}>
+                    {preprocessed.faceDetected ? (
+                      <>✓ Face aligned & normalized · {Math.round(preprocessed.confidence * 100)}% confidence</>
+                    ) : (
+                      <><AlertTriangle className="w-3 h-3" /> No face detected</>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex gap-3 justify-center">
-                  <Button variant="outline" onClick={reset} className="gap-2 rounded-full">
+                  <Button variant="outline" onClick={reset} disabled={preprocessing} className="gap-2 rounded-full">
                     <RotateCcw className="w-4 h-4" /> Retake
                   </Button>
-                  <Button variant="hero" onClick={analyzeSelfie} className="gap-2 rounded-full px-6">
+                  <Button variant="hero" onClick={analyzeSelfie} disabled={preprocessing} className="gap-2 rounded-full px-6">
                     <Sparkles className="w-4 h-4" /> Analyze Skin
                   </Button>
                 </div>

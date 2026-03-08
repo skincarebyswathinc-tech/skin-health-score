@@ -1,5 +1,6 @@
 import { AppNav } from "@/components/AppNav";
 import { useLatestScan } from "@/hooks/useScans";
+import { ProgressChart } from "@/components/ProgressChart";
 import { useAuth } from "@/hooks/useAuth";
 import { MetricsPanel } from "@/components/MetricsPanel";
 import { ScoreRing } from "@/components/ScoreRing";

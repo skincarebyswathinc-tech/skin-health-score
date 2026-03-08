@@ -1,9 +1,14 @@
 import type { Scan } from "@/hooks/useScans";
 import { ScoreRing } from "./ScoreRing";
+import { motion } from "framer-motion";
+import { Droplets, Sun, Eye, Fingerprint, Activity } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface MetricBarProps {
   label: string;
   score: number;
+  icon: LucideIcon;
+  delay: number;
 }
 
 const getBarColor = (score: number) => {
@@ -14,53 +19,79 @@ const getBarColor = (score: number) => {
   return "bg-score-bad";
 };
 
-const MetricBar = ({ label, score }: MetricBarProps) => (
-  <div className="space-y-1.5">
-    <div className="flex justify-between text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold font-display">{score}/100</span>
+const MetricBar = ({ label, score, icon: Icon, delay }: MetricBarProps) => (
+  <motion.div
+    initial={{ opacity: 0, x: -12 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ delay, duration: 0.4 }}
+    className="space-y-2"
+  >
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+        </div>
+        <span className="text-sm font-medium text-foreground">{label}</span>
+      </div>
+      <span className="text-sm font-bold font-display tabular-nums">{score}</span>
     </div>
-    <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-      <div
-        className={`h-full rounded-full transition-all duration-1000 ease-out ${getBarColor(score)}`}
-        style={{ width: `${score}%` }}
+    <div className="metric-bar">
+      <motion.div
+        className={`metric-bar-fill ${getBarColor(score)}`}
+        initial={{ width: 0 }}
+        animate={{ width: `${score}%` }}
+        transition={{ delay: delay + 0.2, duration: 1, ease: [0.22, 1, 0.36, 1] }}
       />
     </div>
-  </div>
+  </motion.div>
 );
 
 export const MetricsPanel = ({ scan }: { scan: Scan }) => {
   const metrics = [
-    { label: "Wrinkles", score: scan.wrinkles_score ?? 0 },
-    { label: "Pores", score: scan.pores_score ?? 0 },
-    { label: "Redness", score: scan.redness_score ?? 0 },
-    { label: "Pigmentation", score: scan.pigmentation_score ?? 0 },
-    { label: "Hydration", score: scan.hydration_score ?? 0 },
+    { label: "Wrinkles", score: scan.wrinkles_score ?? 0, icon: Eye },
+    { label: "Pores", score: scan.pores_score ?? 0, icon: Fingerprint },
+    { label: "Redness", score: scan.redness_score ?? 0, icon: Activity },
+    { label: "Pigmentation", score: scan.pigmentation_score ?? 0, icon: Sun },
+    { label: "Hydration", score: scan.hydration_score ?? 0, icon: Droplets },
   ];
 
   return (
-    <div className="glass-card p-6 space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="glass-card-elevated p-6 sm:p-8 space-y-6"
+    >
+      {/* Header with score ring */}
+      <div className="flex items-center gap-6">
+        <ScoreRing score={scan.overall_score} size={96} strokeWidth={7} showLabel />
+        <div className="flex-1">
           <h3 className="font-display text-lg font-semibold">Skin Health Score</h3>
           {scan.skin_age && (
-            <p className="text-sm text-muted-foreground">Estimated skin age: {scan.skin_age}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Estimated skin age: <span className="font-semibold text-foreground">{scan.skin_age}</span>
+            </p>
           )}
         </div>
-        <ScoreRing score={scan.overall_score} size={80} strokeWidth={6} />
       </div>
 
+      {/* Divider */}
+      <div className="h-px bg-border/60" />
+
+      {/* Metrics */}
       <div className="space-y-4">
-        {metrics.map((m) => (
-          <MetricBar key={m.label} label={m.label} score={m.score} />
+        {metrics.map((m, i) => (
+          <MetricBar key={m.label} {...m} delay={0.1 + i * 0.08} />
         ))}
       </div>
 
+      {/* Summary */}
       {scan.summary && (
-        <div className="pt-4 border-t border-border">
+        <>
+          <div className="h-px bg-border/60" />
           <p className="text-sm text-muted-foreground leading-relaxed">{scan.summary}</p>
-        </div>
+        </>
       )}
-    </div>
+    </motion.div>
   );
 };

@@ -1,8 +1,11 @@
+import { motion } from "framer-motion";
+
 interface ScoreRingProps {
   score: number;
   size?: number;
   strokeWidth?: number;
   label?: string;
+  showLabel?: boolean;
 }
 
 const getScoreColor = (score: number) => {
@@ -21,10 +24,19 @@ const getStrokeColor = (score: number) => {
   return "stroke-score-bad";
 };
 
-export const ScoreRing = ({ score, size = 120, strokeWidth = 8, label }: ScoreRingProps) => {
+const getScoreLabel = (score: number) => {
+  if (score >= 80) return "Excellent";
+  if (score >= 60) return "Good";
+  if (score >= 40) return "Fair";
+  if (score >= 20) return "Poor";
+  return "Needs Care";
+};
+
+export const ScoreRing = ({ score, size = 120, strokeWidth = 8, label, showLabel = false }: ScoreRingProps) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
+  const fontSize = size >= 120 ? "text-3xl" : size >= 60 ? "text-xl" : "text-sm";
 
   return (
     <div className="score-ring flex flex-col items-center gap-2">
@@ -38,7 +50,7 @@ export const ScoreRing = ({ score, size = 120, strokeWidth = 8, label }: ScoreRi
             className="stroke-muted"
             strokeWidth={strokeWidth}
           />
-          <circle
+          <motion.circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
@@ -46,13 +58,19 @@ export const ScoreRing = ({ score, size = 120, strokeWidth = 8, label }: ScoreRi
             className={getStrokeColor(score)}
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
-            strokeDashoffset={offset}
             strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 1s ease-out" }}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-2xl font-bold font-display ${getScoreColor(score)}`}>{score}</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className={`${fontSize} font-bold font-display ${getScoreColor(score)}`}>{score}</span>
+          {showLabel && (
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mt-0.5">
+              {getScoreLabel(score)}
+            </span>
+          )}
         </div>
       </div>
       {label && <span className="text-sm text-muted-foreground font-medium">{label}</span>}

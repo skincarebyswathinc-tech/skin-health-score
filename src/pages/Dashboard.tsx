@@ -71,7 +71,6 @@ const Dashboard = () => {
             <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
               <MetricsPanel scan={latestScan} />
             </motion.div>
-            </motion.div>
           </div>
         ) : (
           <motion.div

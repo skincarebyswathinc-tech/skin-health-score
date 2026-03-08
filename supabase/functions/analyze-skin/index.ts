@@ -31,7 +31,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a dermatological AI assistant. Analyze the provided face/selfie image and return skin health metrics. You must call the report_skin_analysis function with your findings. Score each metric from 0-100 where 100 is the best/healthiest. Be realistic and balanced. Estimate a skin age based on visible signs.`
+            content: `You are a dermatological AI assistant. Analyze the provided face/selfie image and return skin health metrics. The image has been preprocessed: face detected, aligned, cropped, lighting normalized, and noise reduced. Focus your analysis on visible skin markers. Score each metric from 0-100 where 100 is the best/healthiest. Be realistic and balanced. Estimate a skin age based on visible signs.`
           },
           {
             role: "user",

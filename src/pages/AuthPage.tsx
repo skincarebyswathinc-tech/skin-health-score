@@ -4,8 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScanFace, Loader2 } from "lucide-react";
+import { ScanFace, Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -35,19 +37,32 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-8 animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-sm space-y-8"
+      >
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back
+        </Link>
+
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl hero-gradient mx-auto flex items-center justify-center mb-4">
-            <ScanFace className="w-9 h-9 text-primary-foreground" />
+          <div className="w-14 h-14 rounded-2xl hero-gradient mx-auto flex items-center justify-center mb-4 shadow-lg">
+            <ScanFace className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-3xl font-bold">SkinPulse</h1>
-          <p className="text-muted-foreground mt-2">AI-powered skin health analysis</p>
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            {isLogin ? "Welcome back" : "Create account"}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isLogin ? "Sign in to continue" : "Start your skin health journey"}
+          </p>
         </div>
 
-        <div className="glass-card p-8">
+        <div className="glass-card-elevated p-7">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -55,10 +70,11 @@ const AuthPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="rounded-xl h-11"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-medium">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -67,24 +83,25 @@ const AuthPage = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
+                className="rounded-xl h-11"
               />
             </div>
-            <Button type="submit" variant="hero" className="w-full" disabled={loading}>
+            <Button type="submit" variant="hero" className="w-full rounded-xl h-11" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : isLogin ? "Sign In" : "Create Account"}
             </Button>
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-5 text-center">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-primary hover:underline"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

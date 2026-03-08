@@ -5,66 +5,86 @@ import { MetricsPanel } from "@/components/MetricsPanel";
 import { ScoreRing } from "@/components/ScoreRing";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ScanFace, TrendingUp, Calendar } from "lucide-react";
+import { ScanFace, Calendar, TrendingUp, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
+  }),
+};
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { data: latestScan, isLoading } = useLatestScan();
+  const displayName = user?.email?.split("@")[0] ?? "";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="page-container">
       <AppNav />
-      <main className="container py-8 max-w-2xl space-y-8">
-        <div className="animate-fade-in">
-          <h1 className="font-display text-2xl font-bold">
-            Welcome back{user?.email ? `, ${user.email.split("@")[0]}` : ""}
-          </h1>
-          <p className="text-muted-foreground">Your skin health at a glance</p>
-        </div>
+      <main className="page-content">
+        <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUp} className="page-header">
+          <p className="text-sm text-muted-foreground font-medium">Welcome back</p>
+          <h1 className="page-title">{displayName ? `${displayName}'s Dashboard` : "Dashboard"}</h1>
+        </motion.div>
 
         {isLoading ? (
-          <div className="glass-card p-12 text-center animate-pulse-soft">
-            <p className="text-muted-foreground">Loading your data...</p>
+          <div className="glass-card p-16 text-center animate-pulse-soft">
+            <p className="text-muted-foreground">Loading your data…</p>
           </div>
         ) : latestScan ? (
           <div className="space-y-6">
-            <div className="glass-card p-8 text-center animate-fade-in">
-              <p className="text-sm text-muted-foreground mb-4">Your Latest Skin Score</p>
-              <ScoreRing score={latestScan.overall_score} size={160} strokeWidth={10} />
+            {/* Hero Score Card */}
+            <motion.div
+              custom={1} initial="hidden" animate="visible" variants={fadeUp}
+              className="glass-card-elevated p-8 sm:p-10 text-center"
+            >
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-6">Latest Skin Score</p>
+              <ScoreRing score={latestScan.overall_score} size={180} strokeWidth={10} showLabel />
               {latestScan.skin_age && (
-                <p className="mt-4 text-muted-foreground">
+                <p className="mt-5 text-sm text-muted-foreground">
                   Estimated skin age: <span className="font-semibold text-foreground">{latestScan.skin_age}</span>
                 </p>
               )}
-              <div className="flex justify-center gap-3 mt-6">
+              <div className="flex justify-center gap-3 mt-8">
                 <Link to="/scan">
-                  <Button variant="hero" className="gap-1.5">
+                  <Button variant="hero" className="gap-2 rounded-full px-6">
                     <ScanFace className="w-4 h-4" /> New Scan
                   </Button>
                 </Link>
                 <Link to="/history">
-                  <Button variant="hero-outline" className="gap-1.5">
-                    <Calendar className="w-4 h-4" /> View History
+                  <Button variant="outline" className="gap-2 rounded-full px-6">
+                    <Calendar className="w-4 h-4" /> History
                   </Button>
                 </Link>
               </div>
-            </div>
+            </motion.div>
 
-            <MetricsPanel scan={latestScan} />
+            {/* Detailed Metrics */}
+            <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUp}>
+              <MetricsPanel scan={latestScan} />
+            </motion.div>
           </div>
         ) : (
-          <div className="glass-card p-12 text-center animate-fade-in">
-            <TrendingUp className="w-12 h-12 mx-auto mb-4 text-primary/40" />
-            <h2 className="font-display text-lg font-semibold mb-2">No scans yet</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Upload a selfie to get your first skin analysis
+          <motion.div
+            custom={1} initial="hidden" animate="visible" variants={fadeUp}
+            className="glass-card-elevated p-16 text-center"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-5">
+              <TrendingUp className="w-7 h-7 text-accent-foreground" />
+            </div>
+            <h2 className="font-display text-xl font-semibold mb-2">No scans yet</h2>
+            <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">
+              Upload a selfie to get your first AI-powered skin analysis
             </p>
             <Link to="/scan">
-              <Button variant="hero" size="lg">
-                <ScanFace className="w-4 h-4" /> Start Your First Scan
+              <Button variant="hero" size="lg" className="rounded-full px-8 gap-2">
+                <ScanFace className="w-4 h-4" /> Start Your First Scan <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-          </div>
+          </motion.div>
         )}
       </main>
     </div>

@@ -1,12 +1,14 @@
 import { useState, useRef } from "react";
-import { Upload, Camera, Loader2 } from "lucide-react";
+import { Upload, Camera, Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { MetricsPanel } from "./MetricsPanel";
+import { AnalysisLoading } from "./AnalysisLoading";
 import type { Scan } from "@/hooks/useScans";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const SelfieScanner = () => {
   const { user } = useAuth();
@@ -89,67 +91,85 @@ export const SelfieScanner = () => {
     }
   };
 
+  const reset = () => {
+    setPreview(null);
+    setResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  if (analyzing) {
+    return <AnalysisLoading imageUrl={preview} />;
+  }
+
   return (
     <div className="space-y-6">
-      <div className="glass-card p-8 text-center">
-        {preview ? (
-          <div className="space-y-4">
-            <div className="relative inline-block rounded-xl overflow-hidden max-w-xs mx-auto">
-              <img src={preview} alt="Selfie preview" className="w-full h-auto" />
-              {analyzing && (
-                <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <span className="text-sm font-medium text-primary-foreground">Analyzing...</span>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3 justify-center">
-              <Button
-                variant="hero-outline"
-                onClick={() => { setPreview(null); setResult(null); }}
-                disabled={analyzing}
-              >
-                Retake
-              </Button>
-              <Button variant="hero" onClick={analyzeSelfie} disabled={analyzing}>
-                {analyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyzing
-                  </>
-                ) : (
-                  <>
-                    <Camera className="w-4 h-4" />
-                    Analyze Skin
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div
-            className="border-2 border-dashed border-primary/30 rounded-xl p-12 cursor-pointer hover:border-primary/60 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
+      <AnimatePresence mode="wait">
+        {result ? (
+          <motion.div
+            key="result"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-6"
           >
-            <Upload className="w-12 h-12 mx-auto mb-4 text-primary/60" />
-            <h3 className="font-display text-lg font-semibold mb-1">Upload a Selfie</h3>
-            <p className="text-sm text-muted-foreground">Take or upload a clear face photo for analysis</p>
-            <p className="text-xs text-muted-foreground mt-2">JPG, PNG up to 5MB</p>
-          </div>
+            {preview && (
+              <div className="glass-card p-4">
+                <img src={preview} alt="Scan" className="w-28 h-28 rounded-xl object-cover mx-auto" />
+              </div>
+            )}
+            <MetricsPanel scan={result} />
+            <div className="flex justify-center">
+              <Button variant="outline" onClick={reset} className="gap-2 rounded-full">
+                <RotateCcw className="w-4 h-4" /> New Scan
+              </Button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="upload"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="glass-card-elevated p-8"
+          >
+            {preview ? (
+              <div className="space-y-6 text-center">
+                <div className="relative inline-block rounded-2xl overflow-hidden max-w-xs mx-auto shadow-lg">
+                  <img src={preview} alt="Selfie preview" className="w-full h-auto" />
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button variant="outline" onClick={reset} className="gap-2 rounded-full">
+                    <RotateCcw className="w-4 h-4" /> Retake
+                  </Button>
+                  <Button variant="hero" onClick={analyzeSelfie} className="gap-2 rounded-full px-6">
+                    <Sparkles className="w-4 h-4" /> Analyze Skin
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="scan-upload-zone text-center"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-5">
+                  <Upload className="w-7 h-7 text-accent-foreground" />
+                </div>
+                <h3 className="font-display text-lg font-semibold mb-1.5">Upload a Selfie</h3>
+                <p className="text-sm text-muted-foreground">Take or upload a clear face photo</p>
+                <p className="text-xs text-muted-foreground mt-3 opacity-60">JPG, PNG · Max 5 MB</p>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+          </motion.div>
         )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="user"
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-      </div>
-
-      {result && <MetricsPanel scan={result} />}
+      </AnimatePresence>
     </div>
   );
 };

@@ -63,9 +63,14 @@ const Dashboard = () => {
               </div>
             </motion.div>
 
-            {/* Detailed Metrics */}
             <motion.div custom={2} initial="hidden" animate="visible" variants={fadeUp}>
+              <ProgressChart />
+            </motion.div>
+
+            {/* Detailed Metrics */}
+            <motion.div custom={3} initial="hidden" animate="visible" variants={fadeUp}>
               <MetricsPanel scan={latestScan} />
+            </motion.div>
             </motion.div>
           </div>
         ) : (
